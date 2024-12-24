@@ -8,7 +8,6 @@
 package buildver
 
 import (
-	"fmt"
 	"time"
 )
 
@@ -19,7 +18,6 @@ var (
 )
 
 func NewApplicationMeta() *ApplicationMeta {
-	fmt.Println("buildTime:", BuildTime)
 	dtValue, err := time.Parse("2006-01-02 15:04:05", BuildTime)
 	if err != nil {
 		panic(err)
