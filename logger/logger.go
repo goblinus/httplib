@@ -16,13 +16,13 @@ func InitGlobalLogger() {
 		TimeFormat: time.RFC3339,
 		NoColor:    false,
 		FormatLevel: func(i interface{}) string {
-			return strings.ToUpper(fmt.Sprintf("%-6s", i))
+			return strings.ToUpper(fmt.Sprintf("[%-6s]", i))
 		},
 		FormatFieldName: func(i interface{}) string {
 			return fmt.Sprintf("%s:", i)
 		},
 		FormatFieldValue: func(i interface{}) string {
-			return strings.ToUpper(fmt.Sprintf("%s", i))
+			return strings.ToUpper(fmt.Sprintf("[%s]", i))
 		},
 	}).With().Caller().Timestamp().Logger()
 }
