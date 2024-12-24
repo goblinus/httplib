@@ -1,9 +1,6 @@
 package logger
 
 import (
-	"fmt"
-	"os"
-	"strings"
 	"time"
 
 	"github.com/rs/zerolog"
@@ -11,18 +8,23 @@ import (
 )
 
 func InitGlobalLogger() {
-	log.Logger = zerolog.New(zerolog.ConsoleWriter{
-		Out:        os.Stderr,
-		TimeFormat: time.RFC3339,
-		NoColor:    false,
-		FormatLevel: func(i interface{}) string {
-			return strings.ToUpper(fmt.Sprintf("[%-6s]", i))
-		},
-		FormatFieldName: func(i interface{}) string {
-			return fmt.Sprintf("%s:", i)
-		},
-		FormatFieldValue: func(i interface{}) string {
-			return strings.ToUpper(fmt.Sprintf("[%s]", i))
-		},
-	}).With().Caller().Timestamp().Logger()
+	location, err := time.LoadLocation("Europe/Moscow")
+	if err != nil {
+		panic(err)
+	}
+
+	writer := zerolog.NewConsoleWriter(
+		TimeLocation(location),
+		TimeFormatter("2006-01-02 15:04:05"),
+		DisableColoredConsole(false),
+	)
+
+	writer.FormatLevel = FormatLevel("[%s]")
+	writer.FormatCaller = FormatCaller("%s")
+
+	log.Logger = zerolog.New(writer).
+		With().
+		Caller().
+		Timestamp().
+		Logger()
 }
