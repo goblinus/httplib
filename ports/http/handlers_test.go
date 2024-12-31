@@ -6,7 +6,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/goblinus/httplib/buildmeta"
+	"github.com/goblinus/httplib/v2/buildmeta"
 	"github.com/stretchr/testify/assert"
 )
 

@@ -13,7 +13,7 @@ import (
 
 	"github.com/rs/zerolog/log"
 
-	"github.com/goblinus/httplib/ports/http/config"
+	"github.com/goblinus/httplib/v2/ports/http/config"
 )
 
 type (

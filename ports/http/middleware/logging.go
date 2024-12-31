@@ -6,11 +6,9 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
-
-	"github.com/goblinus/httplib/ports/http/config"
 )
 
-func NewLoggingMiddleware(cfg *config.HTTPConfig) gin.HandlerFunc {
+func NewLoggingMiddleware(excludePaths []string) gin.HandlerFunc {
 	var skipPaths map[string]string = make(map[string]string)
 	_ = skipPaths
 
