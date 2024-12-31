@@ -12,8 +12,6 @@ import (
 	"time"
 
 	"github.com/rs/zerolog/log"
-
-	"github.com/goblinus/httplib/v2/ports/http/config"
 )
 
 type (
@@ -26,7 +24,7 @@ type (
 
 const shutdownTimeout = 5 * time.Second
 
-func NewPort(c *config.HTTPConfig, router Router) *Port {
+func NewPort(c *HTTPConfig, router Router) *Port {
 	return &Port{
 		server: &http.Server{
 			Addr:    fmt.Sprintf("%s:%d", c.Addr, c.Port),
