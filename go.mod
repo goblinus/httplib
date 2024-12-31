@@ -1,4 +1,4 @@
-module github.com/goblinus/httplib
+module github.com/goblinus/httplib/v2
 
 go 1.20
 
