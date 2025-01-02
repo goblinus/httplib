@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -18,12 +19,6 @@ func NewLoggingMiddleware(excludePaths []string) gin.HandlerFunc {
 		stopTime := time.Since(startTime)
 
 		var event *zerolog.Event
-		var fields map[string]string = make(map[string]string)
-
-		fields["latency"] = stopTime.String()
-		// fields["status"] = ctx.Request.Response.Status
-		fields["path"] = ctx.Request.URL.Path
-		fields["method"] = ctx.Request.Method
 
 		status := ctx.Writer.Status()
 		if len(ctx.Errors) > 0 {
@@ -36,10 +31,10 @@ func NewLoggingMiddleware(excludePaths []string) gin.HandlerFunc {
 			event = log.Info()
 		}
 
-		for name, value := range fields {
-			event.Str(name, value)
-		}
-
-		event.Msg("")
+		event.Str("latency", stopTime.String()).
+			Str("status", fmt.Sprintf("%d", status)).
+			Str("path", ctx.Request.URL.Path).
+			Str("method", ctx.Request.Method).
+			Msg("")
 	}
 }
