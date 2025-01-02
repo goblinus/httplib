@@ -21,7 +21,7 @@ func NewLoggingMiddleware(excludePaths []string) gin.HandlerFunc {
 		var fields map[string]string = make(map[string]string)
 
 		fields["latency"] = stopTime.String()
-		fields["status"] = ctx.Request.Response.Status
+		// fields["status"] = ctx.Request.Response.Status
 		fields["path"] = ctx.Request.URL.Path
 		fields["method"] = ctx.Request.Method
 
