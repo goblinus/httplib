@@ -10,8 +10,6 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
-
-	"github.com/oapi-codegen/runtime"
 )
 
 // GetPmapsParams defines parameters for GetPmaps.
@@ -151,33 +149,13 @@ func NewGetPmapsRequest(server string, params *GetPmapsParams) (*http.Request, e
 
 		if params.Limit != nil {
 
-			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "limit", runtime.ParamLocationQuery, *params.Limit); err != nil {
-				return nil, err
-			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
-				return nil, err
-			} else {
-				for k, v := range parsed {
-					for _, v2 := range v {
-						queryValues.Add(k, v2)
-					}
-				}
-			}
+			queryValues.Add("limit", fmt.Sprintf("%d", *params.Limit))
 
 		}
 
 		if params.Offset != nil {
 
-			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "offset", runtime.ParamLocationQuery, *params.Offset); err != nil {
-				return nil, err
-			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
-				return nil, err
-			} else {
-				for k, v := range parsed {
-					for _, v2 := range v {
-						queryValues.Add(k, v2)
-					}
-				}
-			}
+			queryValues.Add("offset", fmt.Sprintf("%d", *params.Offset))
 
 		}
 
@@ -198,10 +176,7 @@ func NewGetPmapsPmapUuidRequest(server string, pmapUuid string) (*http.Request, 
 
 	var pathParam0 string
 
-	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "pmap_uuid", runtime.ParamLocationPath, pmapUuid)
-	if err != nil {
-		return nil, err
-	}
+	pathParam0 = pmapUuid
 
 	serverURL, err := url.Parse(server)
 	if err != nil {
