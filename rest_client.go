@@ -12,97 +12,53 @@ import (
 	"strings"
 )
 
-// GetPmapsParams defines parameters for GetPmaps.
-type GetPmapsParams struct {
-	// Limit count of pmaps
-	Limit *int `form:"limit,omitempty" json:"limit,omitempty"`
-
-	// Offset from element
-	Offset *int `form:"offset,omitempty" json:"offset,omitempty"`
-}
-
-// RequestEditorFn  is the function signature for the RequestEditor callback function
-type RequestEditorFn func(ctx context.Context, req *http.Request) error
-
-// Doer performs HTTP requests.
-//
-// The standard http.Client implements this interface.
-type HttpRequestDoer interface {
-	Do(req *http.Request) (*http.Response, error)
-}
-
 // Client which conforms to the OpenAPI3 specification for this service.
-type Client struct {
-	// The endpoint of the server conforming to this interface, with scheme,
-	// https://api.deepmap.com for example. This can contain a path relative
-	// to the server, such as https://api.deepmap.com/dev-test, and all the
-	// paths in the swagger spec will be appended to the server.
-	Server string
+type (
+	ClientInterface interface {
+		// GetPmaps request
+		GetPmaps(ctx context.Context, params *GetPmapsParams, reqEditors ...RequestModifier) (*http.Response, error)
 
-	// Doer for performing requests, typically a *http.Client with any
-	// customized settings, such as certificate chains.
-	Client HttpRequestDoer
+		// GetPmapsPmapUuid request
+		GetPmapsPmapUuid(ctx context.Context, pmapUuid string, reqEditors ...RequestModifier) (*http.Response, error)
+	}
 
-	// A list of callbacks for modifying requests which are generated before sending over
-	// the network.
-	RequestEditors []RequestEditorFn
-}
+	ClientWithResponsesInterface interface {
+		// GetPmapsWithResponse request
+		GetPmapsWithResponse(ctx context.Context, params *GetPmapsParams, reqEditors ...RequestModifier) (*GetPmapsResponse, error)
 
-// ClientOption allows setting custom parameters during construction
-type ClientOption func(*Client) error
+		// GetPmapsPmapUuidWithResponse request
+		GetPmapsPmapUuidWithResponse(ctx context.Context, pmapUuid string, reqEditors ...RequestModifier) (*GetPmapsPmapUuidResponse, error)
+	}
+
+	Client struct {
+		Client           HttpRequester
+		ServiceBaseURL   string
+		RequestModifiers []RequestModifier
+	}
+)
 
 // Creates a new Client, with reasonable defaults
-func NewClient(server string, opts ...ClientOption) (*Client, error) {
-	// create a client with sane default values
-	client := Client{
-		Server: server,
+func NewClient(url string, opts ...ClientOption) (*Client, error) {
+	if !strings.HasSuffix(url, "/") {
+		url += "/"
 	}
-	// mutate client and add all optional params
+
+	client := Client{
+		Client:         &http.Client{},
+		ServiceBaseURL: url,
+	}
+
 	for _, o := range opts {
 		if err := o(&client); err != nil {
 			return nil, err
 		}
 	}
-	// ensure the server URL always has a trailing slash
-	if !strings.HasSuffix(client.Server, "/") {
-		client.Server += "/"
-	}
-	// create httpClient, if not already present
-	if client.Client == nil {
-		client.Client = &http.Client{}
-	}
+
 	return &client, nil
 }
 
-// WithHTTPClient allows overriding the default Doer, which is
-// automatically created using http.Client. This is useful for tests.
-func WithHTTPClient(doer HttpRequestDoer) ClientOption {
-	return func(c *Client) error {
-		c.Client = doer
-		return nil
-	}
-}
-
-// WithRequestEditorFn allows setting up a callback function, which will be
-// called right before sending the request. This can be used to mutate the request.
-func WithRequestEditorFn(fn RequestEditorFn) ClientOption {
-	return func(c *Client) error {
-		c.RequestEditors = append(c.RequestEditors, fn)
-		return nil
-	}
-}
-
-// The interface specification for the client above.
-type ClientInterface interface {
-	// GetPmaps request
-	GetPmaps(ctx context.Context, params *GetPmapsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// GetPmapsPmapUuid request
-	GetPmapsPmapUuid(ctx context.Context, pmapUuid string, reqEditors ...RequestEditorFn) (*http.Response, error)
-}
-
-func (c *Client) GetPmaps(ctx context.Context, params *GetPmapsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewGetPmapsRequest(c.Server, params)
+func (c *Client) GetPmaps(ctx context.Context, params *GetPmapsParams, reqEditors ...RequestModifier) (*http.Response, error) {
+	req, err := NewGetPmapsRequest(c.ServiceBaseURL, params)
 	if err != nil {
 		return nil, err
 	}
@@ -113,8 +69,8 @@ func (c *Client) GetPmaps(ctx context.Context, params *GetPmapsParams, reqEditor
 	return c.Client.Do(req)
 }
 
-func (c *Client) GetPmapsPmapUuid(ctx context.Context, pmapUuid string, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewGetPmapsPmapUuidRequest(c.Server, pmapUuid)
+func (c *Client) GetPmapsPmapUuid(ctx context.Context, pmapUuid string, reqEditors ...RequestModifier) (*http.Response, error) {
+	req, err := NewGetPmapsPmapUuidRequest(c.ServiceBaseURL, pmapUuid)
 	if err != nil {
 		return nil, err
 	}
@@ -201,8 +157,8 @@ func NewGetPmapsPmapUuidRequest(server string, pmapUuid string) (*http.Request, 
 	return req, nil
 }
 
-func (c *Client) applyEditors(ctx context.Context, req *http.Request, additionalEditors []RequestEditorFn) error {
-	for _, r := range c.RequestEditors {
+func (c *Client) applyEditors(ctx context.Context, req *http.Request, additionalEditors []RequestModifier) error {
+	for _, r := range c.RequestModifiers {
 		if err := r(ctx, req); err != nil {
 			return err
 		}
@@ -230,71 +186,8 @@ func NewClientWithResponses(server string, opts ...ClientOption) (*ClientWithRes
 	return &ClientWithResponses{client}, nil
 }
 
-// WithBaseURL overrides the baseURL.
-func WithBaseURL(baseURL string) ClientOption {
-	return func(c *Client) error {
-		newBaseURL, err := url.Parse(baseURL)
-		if err != nil {
-			return err
-		}
-		c.Server = newBaseURL.String()
-		return nil
-	}
-}
-
-// ClientWithResponsesInterface is the interface specification for the client with responses above.
-type ClientWithResponsesInterface interface {
-	// GetPmapsWithResponse request
-	GetPmapsWithResponse(ctx context.Context, params *GetPmapsParams, reqEditors ...RequestEditorFn) (*GetPmapsResponse, error)
-
-	// GetPmapsPmapUuidWithResponse request
-	GetPmapsPmapUuidWithResponse(ctx context.Context, pmapUuid string, reqEditors ...RequestEditorFn) (*GetPmapsPmapUuidResponse, error)
-}
-
-type GetPmapsResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-}
-
-// Status returns HTTPResponse.Status
-func (r GetPmapsResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r GetPmapsResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-type GetPmapsPmapUuidResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-}
-
-// Status returns HTTPResponse.Status
-func (r GetPmapsPmapUuidResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r GetPmapsPmapUuidResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
 // GetPmapsWithResponse request returning *GetPmapsResponse
-func (c *ClientWithResponses) GetPmapsWithResponse(ctx context.Context, params *GetPmapsParams, reqEditors ...RequestEditorFn) (*GetPmapsResponse, error) {
+func (c *ClientWithResponses) GetPmapsWithResponse(ctx context.Context, params *GetPmapsParams, reqEditors ...RequestModifier) (*GetPmapsResponse, error) {
 	rsp, err := c.GetPmaps(ctx, params, reqEditors...)
 	if err != nil {
 		return nil, err
@@ -303,7 +196,7 @@ func (c *ClientWithResponses) GetPmapsWithResponse(ctx context.Context, params *
 }
 
 // GetPmapsPmapUuidWithResponse request returning *GetPmapsPmapUuidResponse
-func (c *ClientWithResponses) GetPmapsPmapUuidWithResponse(ctx context.Context, pmapUuid string, reqEditors ...RequestEditorFn) (*GetPmapsPmapUuidResponse, error) {
+func (c *ClientWithResponses) GetPmapsPmapUuidWithResponse(ctx context.Context, pmapUuid string, reqEditors ...RequestModifier) (*GetPmapsPmapUuidResponse, error) {
 	rsp, err := c.GetPmapsPmapUuid(ctx, pmapUuid, reqEditors...)
 	if err != nil {
 		return nil, err
