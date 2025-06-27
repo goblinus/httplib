@@ -1,0 +1,29 @@
+package rest
+
+import "net/url"
+
+func WithHTTPClient(requester HttpRequester) ClientOption {
+	return func(c *Client) error {
+		c.Client = requester
+		return nil
+	}
+}
+
+func WithRequestModifer(modifier RequestModifier) ClientOption {
+	return func(c *Client) error {
+		c.RequestModifiers = append(c.RequestModifiers, modifier)
+		return nil
+	}
+}
+
+// WithBaseURL overrides the baseURL.
+func WithBaseURL(baseURL string) ClientOption {
+	return func(c *Client) error {
+		newBaseURL, err := url.Parse(baseURL)
+		if err != nil {
+			return err
+		}
+		c.ServiceBaseURL = newBaseURL.String()
+		return nil
+	}
+}
